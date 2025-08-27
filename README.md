@@ -1,5 +1,5 @@
 # fastapi_app
-Generic FastAPI app
+FastAPI app behind a reverse proxy that converts GRPC to REST
 
 ## Required binaries
 
@@ -8,3 +8,7 @@ Generic FastAPI app
 - Buf (for Protobuf generation)
 - Golang (for GRPC Gateway)
 - Rust (for Pydantic-Core)
+
+## Intention
+
+We want to be able to make a REST API that works entirely off of a protobuf definition.
