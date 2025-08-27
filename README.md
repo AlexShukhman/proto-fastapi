@@ -11,4 +11,4 @@ FastAPI app behind a reverse proxy that converts GRPC to REST
 
 ## Intention
 
-We want to be able to make a REST API that works entirely off of a protobuf definition.
+We want to be able to make a REST API that works entirely off of a .proto definition.
