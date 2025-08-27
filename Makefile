@@ -5,6 +5,7 @@ VENV = .venv
 VENV_BIN = $(VENV)/bin
 VENV_PYTHON = $(VENV_BIN)/python
 VENV_PIP = $(VENV_BIN)/pip
+MODELS = src/models
 
 # Default target
 .PHONY: help
@@ -18,11 +19,18 @@ help:
 	@echo "  freeze      - Generate requirements.txt from current environment"
 	@echo "  clean       - Remove virtual environment and cache files"
 	@echo "  clean-cache - Remove only cache files (keep venv)"
-	@echo "  run         - Run FastAPI development server"
-	@echo "  test        - Run tests"
-	@echo "  test-cov    - Run tests with coverage"
-	@echo "  lint        - Run code linting with flake8"
-	@echo "  format      - Format code with black"
+	@echo "  run-python      - Run Python FastAPI server"
+	@echo "  run-gateway     - Run Go gateway server"
+	@echo "  start           - Start Go gateway server (alias for run-gateway)"
+	@echo "  build-gateway   - Build Go gateway server binaries (OS aware)"
+	@echo "  generate        - Generate protobuf files using buf"
+	@echo "  dev             - Start both Python and gateway servers simultaneously"
+	@echo "  test            - Run tests"
+	@echo "  test-cov        - Run tests with coverage"
+	@echo "  lint            - Run code linting with flake8"
+	@echo "  format          - Format code with black"
+	@echo "  status          - Show project status and dependencies"
+	@echo "  protos          - Generate protobuf Python files (legacy)"
 
 # Virtual environment setup
 .PHONY: venv
@@ -55,19 +63,7 @@ install:
 		echo "Virtual environment not found. Creating..."; \
 		$(MAKE) venv; \
 	fi
-	$(VENV_PIP) install -r requirements.txt
-
-.PHONY: dev-install
-dev-install:
-	@if [ ! -d "$(VENV)" ]; then \
-		echo "Virtual environment not found. Creating..."; \
-		$(MAKE) venv; \
-	fi
-	@if [ -f requirements-dev.txt ]; then \
-		$(VENV_PIP) install -r requirements-dev.txt; \
-	else \
-		$(VENV_PIP) install flake8 black pytest pytest-django pytest-cov; \
-	fi
+	$(VENV_PIP) install --only-binary=pydantic-core -r requirements.txt;
 
 .PHONY: freeze
 freeze:
@@ -94,13 +90,42 @@ clean-cache:
 	rm -rf dist
 	rm -rf build
 
-# Django commands (check for venv first)
-.PHONY: run
-run:
+# Start server (check for venv first)
+.PHONY: run-python
+run-python:
 	@if [ ! -d "$(VENV)" ]; then \
 		echo "Virtual environment not found. Please run 'make setup' first."; \
 		exit 1; \
 	fi
+	$(VENV_PYTHON) -m uvicorn src.server:app --reload --host 0.0.0.0 --port 8000
+
+# Build gateway server (OS aware)
+.PHONY: build-gateway
+build-gateway:
+	@echo "Building gateway server..."
+	@mkdir -p bin
+	cd src/gateway && \
+	if [ "$(shell uname)" = "Darwin" ]; then \
+		GOOS=darwin GOARCH=amd64 go build -o ../../bin/gateway-darwin-amd64 main.go && \
+		GOOS=darwin GOARCH=arm64 go build -o ../../bin/gateway-darwin-arm64 main.go && \
+		echo "Built gateway for macOS (Intel and Apple Silicon)"; \
+	elif [ "$(shell uname)" = "Linux" ]; then \
+		GOOS=linux GOARCH=amd64 go build -o ../../bin/gateway-linux-amd64 main.go && \
+		GOOS=linux GOARCH=arm64 go build -o ../../bin/gateway-linux-arm64 main.go && \
+		echo "Built gateway for Linux (amd64 and arm64)"; \
+	elif [ "$(shell uname -s | cut -c1-5)" = "MINGW" ] || [ "$(shell uname -s | cut -c1-4)" = "MSYS" ]; then \
+		GOOS=windows GOARCH=amd64 go build -o ../../bin/gateway-windows-amd64.exe main.go && \
+		GOOS=windows GOARCH=arm64 go build -o ../../bin/gateway-windows-arm64.exe main.go && \
+		echo "Built gateway for Windows (amd64 and arm64)"; \
+	else \
+		go build -o ../../bin/gateway main.go && \
+		echo "Built gateway for current platform"; \
+	fi
+
+# Start gateway server
+.PHONY: run-gateway
+run-gateway: build-gateway
+	cd src/gateway && go run main.go
 
 # Testing
 .PHONY: test
@@ -138,7 +163,12 @@ format:
 
 # Development workflow
 .PHONY: dev
-dev: setup run
+dev: generate install
+	@echo "Starting development servers..."
+	@echo "Python server will start on port 8000"
+	@echo "Gateway server will start on port 8080"
+	@echo "Press Ctrl+C to stop both servers"
+	$(MAKE) run-python & $(MAKE) run-gateway & wait
 
 # Status check
 .PHONY: status
@@ -155,3 +185,12 @@ status:
 	else \
 		echo "Requirements file: ✗ Not found"; \
 	fi
+
+# Protobuf
+.PHONY: generate
+generate:
+	@if [ ! -d "$(VENV)" ]; then \
+		echo "Virtual environment not found. Please run 'make setup' first."; \
+		exit 1; \
+	fi
+	PATH="$(VENV_BIN):$$PATH" buf generate

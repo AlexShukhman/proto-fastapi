@@ -1,0 +1,17 @@
+version: v2
+plugins:
+  # Gateway
+  - remote: buf.build/grpc-ecosystem/gateway:v2.27.2
+    out: src/gateway/gen
+  - remote: buf.build/protocolbuffers/go
+    out: src/gateway/gen
+  - remote: buf.build/grpc/go
+    out: src/gateway/gen
+  # Python
+  - remote: buf.build/protocolbuffers/python
+    out: src/models/gen
+  - remote: buf.build/grpc/python
+    out: src/models/gen
+  # OpenAPI
+  - remote: buf.build/grpc-ecosystem/openapiv2
+    out: ./docs
