@@ -1,4 +1,4 @@
-# fastapi_app
+# Proto FastAPI
 FastAPI app behind a reverse proxy that converts GRPC to REST
 
 ## Required binaries
