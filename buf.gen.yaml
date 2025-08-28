@@ -10,6 +10,8 @@ plugins:
   # Python
   - remote: buf.build/protocolbuffers/python
     out: src/models/gen
+    opt:
+      - pyi_out=src/models/gen  # Generate .pyi files for better IDE support
   - remote: buf.build/grpc/python
     out: src/models/gen
   # OpenAPI

@@ -194,3 +194,4 @@ generate:
 		exit 1; \
 	fi
 	PATH="$(VENV_BIN):$$PATH" buf generate
+	$(VENV_PYTHON) dev/fix_imports.py

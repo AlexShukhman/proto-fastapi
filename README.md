@@ -11,4 +11,6 @@ FastAPI app behind a reverse proxy that converts GRPC to REST
 
 ## Intention
 
-We want to be able to make a REST API that works entirely off of a .proto definition.
+We want to be able to make a scalable REST API that works entirely off of a .proto definition. We chose FastAPI to use as the backend because it's simple, has a relatively comfortable GRPC implementation, and seems more efficient than the native GRPC Python implementation.
+
+This will act as a template for future projects.
